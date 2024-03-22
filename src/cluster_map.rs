@@ -12,7 +12,7 @@ use plotly::{
 use crate::Data;
 
 
-pub fn cluster_map(data: Data, x: usize, y: usize, title: &str) -> Result<Plot, Box<dyn Error>> {
+pub fn plot(data: Data, x: usize, y: usize, title: &str) -> Result<Plot, Box<dyn Error>> {
     let names = data.feature_names();
 
     let x_name = &names[x];

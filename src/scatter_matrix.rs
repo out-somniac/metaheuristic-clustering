@@ -9,7 +9,7 @@ use plotly::{
 use crate::Data;
 
 
-pub fn scatter_matrix(data: Data, title: &str) -> Result<Plot, Box<dyn Error>> {
+pub fn plot(data: Data, title: &str) -> Result<Plot, Box<dyn Error>> {
     let n = data.nfeatures();
     let names = data.feature_names();
 
