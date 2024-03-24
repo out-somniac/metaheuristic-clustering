@@ -179,6 +179,7 @@ dependencies = [
  "linfa-clustering",
  "linfa-datasets",
  "ndarray",
+ "ndarray-stats",
  "plotly",
  "rand",
 ]

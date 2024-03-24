@@ -5,7 +5,7 @@ use plotly::ImageFormat;
 use rand::{self, Rng};
 
 #[allow(unused_imports)]
-use clusterization::{Data, cluster_map, prediction_map, scatter_matrix};
+use clusterization::{Data, plot::{cluster_map, prediction_map, scatter_matrix}};
 
 const DEST: &'static str = "images/prediction.png";
 
