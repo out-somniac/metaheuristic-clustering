@@ -12,6 +12,7 @@ linfa = "0.7.0"
 linfa-clustering = "0.7.0"
 linfa-datasets = { version = "0.7.0", features = ["iris", "winequality"] }
 ndarray = "0.15.6"
+ndarray-rand = "0.14.0"
 ndarray-stats = "0.5.1"
 plotly = {version = "0.8.4", features = ["kaleido", "plotly_ndarray"]}
 rand = "0.8.5"
