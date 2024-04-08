@@ -11,6 +11,7 @@ lazy_static = "1.4.0"
 linfa = "0.7.0"
 linfa-clustering = "0.7.0"
 linfa-datasets = { version = "0.7.0", features = ["iris", "winequality"] }
+linfa-nn = "0.7.0"
 ndarray = "0.15.6"
 ndarray-rand = "0.14.0"
 ndarray-stats = "0.5.1"

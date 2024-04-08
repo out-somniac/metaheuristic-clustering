@@ -178,6 +178,7 @@ dependencies = [
  "linfa",
  "linfa-clustering",
  "linfa-datasets",
+ "linfa-nn",
  "ndarray",
  "ndarray-rand",
  "ndarray-stats",

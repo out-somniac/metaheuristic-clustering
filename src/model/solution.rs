@@ -16,6 +16,14 @@ impl Fuzzy {
             Uniform::new(0.0, 1.0)
         ))
     }
+
+    pub fn to_prob(self) -> Probabilistic {
+        self.try_into().unwrap()
+    }
+
+    pub fn to_discrete(self) -> Discrete {
+        self.try_into().unwrap()
+    }
 }
 
 impl TryInto<Probabilistic> for Fuzzy {
@@ -38,13 +46,21 @@ impl TryInto<Discrete> for Fuzzy {
     type Error = MinMaxError;
 
     fn try_into(self) -> Result<Discrete, Self::Error> {
-        let prob: Probabilistic = self.try_into()?;
-        prob.try_into()
+        Ok(Discrete(self.0.map_axis(
+            Axis(1),
+            |row| row.argmax().unwrap()  // TODO handle error properly
+        )))
     }
 }
 
 #[derive(Debug)]
 pub struct Probabilistic(pub Array2<f64>);
+
+impl Probabilistic {
+    pub fn to_discrete(self) -> Discrete {
+        self.try_into().unwrap()
+    }
+}
 
 impl TryInto<Discrete> for Probabilistic {
     type Error = MinMaxError;
@@ -52,7 +68,7 @@ impl TryInto<Discrete> for Probabilistic {
     fn try_into(self) -> Result<Discrete, Self::Error> {
         Ok(Discrete(self.0.map_axis(
             Axis(1),
-            |row| row.argmax().unwrap()
+            |row| row.argmax().unwrap()  // TODO handle error properly
         )))
     }
 }
@@ -66,6 +82,10 @@ impl Discrete {
             .targets()
             .to_owned();
 
+        Discrete(target)
+    }
+
+    pub fn from_prediction(target: Array1<usize>) -> Self {
         Discrete(target)
     }
 
