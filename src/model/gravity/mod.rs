@@ -79,7 +79,7 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
     let mut velocities: Array3<f64> =
         Array3::<f64>::zeros((params.agents_total, n_samples, params.n_classes));
 
-    for time in 0..params.max_iterations {
+    for time in 1..=params.max_iterations {
         let fitness = agents_fitness(&agents, &data);
 
         let gravity = params.initial_gravity * (1.0 / time as f64).powf(params.gravity_decay);
