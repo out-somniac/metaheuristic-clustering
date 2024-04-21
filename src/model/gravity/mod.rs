@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use itertools::iproduct;
-use ndarray::{Array, Array1, Array2, Array3};
+use ndarray::{Array, Array1, Array2, Array3, s};
 
 use super::solution::Fuzzy;
 use crate::Data;
@@ -88,12 +88,20 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
         let worst = fitness.iter().fold(f64::INFINITY, |a, &b| a.min(b));
 
         let masses = compute_masses(&fitness, best, worst);
-        let forces = total_forces(n_samples, gravity, &params, &masses, &agents);
-        let accelerations = forces / masses;
-        velocities += &accelerations;
+        let mut forces = total_forces(n_samples, gravity, &params, &masses, &agents);
+        
+        // let mut accelerations = forces / masses;
 
-        for agent in &mut agents {
-            agent.distribution += &velocities
+        for agent in 0..agents.len() {
+            let mass = unsafe { *masses.uget(agent) };
+            forces.slice_mut(s![agent, .., ..]).mapv_inplace(|x| x / mass);
+        }
+
+        velocities += &forces;
+
+        for (i, agent) in agents.iter_mut().enumerate() {
+            agent.distribution += &velocities.slice(s![i, .., ..]);
+            // dbg!(&agent.distribution);
         }
     }
 

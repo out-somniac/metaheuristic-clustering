@@ -6,7 +6,11 @@ use linfa_datasets::iris;
 use plotly::ImageFormat;
 
 #[allow(unused_imports)]
-use clusterization::{Data, plot::{cluster_map, prediction_map, scatter_matrix}};
+use clusterization::{
+    Data,
+    plot::{cluster_map, prediction_map, scatter_matrix},
+    model::gravity::{self, GSAParameters}
+};
 
 const DEST: &'static str = "images/prediction.png";
 
@@ -26,7 +30,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect::<Vec<_>>()
         .len();
     
-    let solution = Fuzzy::random(n_samples, n_classes);
+    // let solution = Fuzzy::random(n_samples, n_classes);
+    let params = GSAParameters {
+        n_classes: 3,
+        agents_total: 5,
+        max_iterations: 10,
+        initial_gravity: 10.0,
+        gravity_decay: 1.0
+    };
+
+    let solution = gravity::fit(&data, params)?;
 
     let fitness = solution.fitness(&data);
     println!("{fitness}");
