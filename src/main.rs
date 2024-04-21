@@ -26,8 +26,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect::<Vec<_>>()
         .len();
     
-    let population = Fuzzy::random(n_samples, n_classes);
-    let prediction: Discrete = population.try_into()?;
+    let solution = Fuzzy::random(n_samples, n_classes);
+
+    let fitness = solution.fitness(&data);
+    println!("{fitness}");
+
+    let prediction: Discrete = solution.try_into()?;
 
     let plot = prediction_map::plot(
         data,
