@@ -54,6 +54,13 @@ fn total_forces(
     return total_forces;
 }
 
+fn agents_fitness(agents: &Vec<Fuzzy>, data: &Data) -> Vec<f64> {
+    agents
+        .iter()
+        .map(|agent| agent.fitness(&data))
+        .collect::<Vec<_>>()
+}
+
 pub struct GSAParameters {
     pub n_classes: usize,
     pub agents_total: usize,
@@ -62,7 +69,7 @@ pub struct GSAParameters {
     pub gravity_decay: f64,
 }
 
-fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
+pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
     let n_samples = data.records.nrows();
 
     let mut agents: Vec<Fuzzy> = (0..params.agents_total)
@@ -73,10 +80,7 @@ fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
         Array3::<f64>::zeros((params.agents_total, n_samples, params.n_classes));
 
     for time in 0..params.max_iterations {
-        let fitness = agents
-            .iter()
-            .map(|agent| agent.fitness(&data))
-            .collect::<Vec<_>>();
+        let fitness = agents_fitness(&agents, &data);
 
         let gravity = params.initial_gravity * (1.0 / time as f64).powf(params.gravity_decay);
 
@@ -93,5 +97,10 @@ fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
         }
     }
 
-    todo!()
+    let best_agent = agents
+        .iter()
+        .max_by(|a1, a2| a1.fitness(&data).partial_cmp(&a2.fitness(&data)).unwrap())
+        .unwrap();
+
+    Ok(best_agent.clone())
 }

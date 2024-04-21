@@ -19,7 +19,7 @@ fn fit(
     max_iterations: usize,
     tolerance: f64,
 ) -> Result<Discrete, Box<dyn Error>> {
-    let dataset = Dataset::from(data.records);
+    let dataset = Dataset::from(data.records.to_owned());
     let rng = thread_rng();
 
     let model = KMeans::params_with(n_clusters, rng, L2Dist)
