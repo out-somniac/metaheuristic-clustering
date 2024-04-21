@@ -29,14 +29,16 @@ fn fit(
     max_iterations: usize,
     initial_gravity: f64,
     gravity_decay: f64,
-) -> Result<Discrete, Box<dyn Error>> {
+) -> Result<Fuzzy, Box<dyn Error>> {
     // Dimensionality of the data
     let n_cols = data.records.ncols();
 
     // Generate initial population
-    let agents: Vec<Fuzzy> = (0..agents_total)
+    let mut agents: Vec<Fuzzy> = (0..agents_total)
         .map(|_| Fuzzy::random(n_samples, n_classes))
         .collect();
+
+    let mut velocities: Array3<f64> = Array3::<f64>::zeros((agents_total, n_samples, n_classes));
 
     for time in 0..max_iterations {
         // Compute fitness values
@@ -56,27 +58,38 @@ fn fit(
         let masses = compute_masses(&fitness, best, worst);
 
         // Compute the total force working on each agent
-        let mut total_forces: Array2<f64> = Array2::<f64>::zeros((agents_total, n_cols));
+        let mut total_forces: Array3<f64> =
+            Array3::<f64>::zeros((agents_total, n_samples, n_classes));
         for (i, &mass_i) in masses.iter().enumerate() {
             for (j, &mass_j) in masses.iter().enumerate() {
                 if i == j {
                     continue;
                 }
 
-                let x_i = data.records.row(i);
-                let x_j = data.records.row(j);
-                let difference = &x_j - &x_i;
-                let distance = difference.dot(&difference).sqrt();
+                let x_i: &Array2<f64> = &agents[i].distribution;
+                let x_j: &Array2<f64> = &agents[j].distribution;
+                let difference = x_j - x_i;
+                let distance = (x_i * x_j).sum().sqrt();
                 let force = gravity * mass_i * mass_j * difference / distance;
 
-                for feature in 0..n_cols {
-                    unsafe { *total_forces.uget_mut((i, feature)) += *force.uget(feature) }
+                for sample in 0..n_samples {
+                    for class in 0..n_classes {
+                        unsafe {
+                            *total_forces.uget_mut((i, sample, class)) +=
+                                *force.uget((sample, class))
+                        }
+                    }
                 }
             }
         }
 
+        // Compute accelerations
         let accelerations = total_forces / masses;
+        velocities += &accelerations;
+        for agent in &mut agents {
+            agent.distribution += &velocities
+        }
     }
 
-    todo!();
+    todo!()
 }
