@@ -1,8 +1,9 @@
-use std::{cmp::Ordering, error::Error, iter};
+use std::error::Error;
 
-use ndarray::{s, Array, Array1, Array2, Array3, ArrayView};
+use itertools::iproduct;
+use ndarray::{Array, Array1, Array2, Array3};
 
-use super::solution::{Discrete, Fuzzy};
+use super::solution::Fuzzy;
 use crate::Data;
 
 fn compute_masses(fitness: &Vec<f64>, best: f64, worst: f64) -> Array1<f64> {
@@ -21,71 +22,72 @@ fn compute_masses(fitness: &Vec<f64>, best: f64, worst: f64) -> Array1<f64> {
     Array::from_vec(normalized_masses)
 }
 
-fn fit(
-    data: &Data,
+fn total_forces(
     n_samples: usize,
-    n_classes: usize,
-    agents_total: usize,
-    max_iterations: usize,
-    initial_gravity: f64,
-    gravity_decay: f64,
-) -> Result<Fuzzy, Box<dyn Error>> {
-    // Dimensionality of the data
-    let n_cols = data.records.ncols();
+    gravity: f64,
+    params: &GSAParameters,
+    masses: &Array1<f64>,
+    agents: &Vec<Fuzzy>,
+) -> Array3<f64> {
+    let mut total_forces = Array3::<f64>::zeros((params.agents_total, n_samples, params.n_classes));
 
-    // Generate initial population
-    let mut agents: Vec<Fuzzy> = (0..agents_total)
-        .map(|_| Fuzzy::random(n_samples, n_classes))
+    let mass_enumerator = iproduct!(masses.iter().enumerate(), masses.iter().enumerate())
+        .filter(|((i, _), (j, _))| i != j);
+
+    for ((i, &mass_i), (j, &mass_j)) in mass_enumerator {
+        let x_i: &Array2<f64> = &agents[i].distribution;
+        let x_j: &Array2<f64> = &agents[j].distribution;
+        let difference = x_j - x_i;
+        let distance = (x_i * x_j).sum().sqrt();
+        let force = gravity * mass_i * mass_j * difference / distance;
+
+        // FixMe: Nie Za taką Polskę walczyłem :(
+        for sample in 0..n_samples {
+            for class in 0..params.n_classes {
+                unsafe {
+                    *total_forces.uget_mut((i, sample, class)) += *force.uget((sample, class));
+                }
+            }
+        }
+    }
+
+    return total_forces;
+}
+
+pub struct GSAParameters {
+    pub n_classes: usize,
+    pub agents_total: usize,
+    pub max_iterations: usize,
+    pub initial_gravity: f64,
+    pub gravity_decay: f64,
+}
+
+fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
+    let n_samples = data.records.nrows();
+
+    let mut agents: Vec<Fuzzy> = (0..params.agents_total)
+        .map(|_| Fuzzy::random(n_samples, params.n_classes))
         .collect();
 
-    let mut velocities: Array3<f64> = Array3::<f64>::zeros((agents_total, n_samples, n_classes));
+    let mut velocities: Array3<f64> =
+        Array3::<f64>::zeros((params.agents_total, n_samples, params.n_classes));
 
-    for time in 0..max_iterations {
-        // Compute fitness values
+    for time in 0..params.max_iterations {
         let fitness = agents
             .iter()
             .map(|agent| agent.fitness(&data))
             .collect::<Vec<_>>();
 
-        // Gravitational constant
-        let gravity = initial_gravity * (1.0 / time as f64).powf(gravity_decay);
+        let gravity = params.initial_gravity * (1.0 / time as f64).powf(params.gravity_decay);
 
-        // Compute best and worst fitness for iteration
         let best = fitness.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
         let worst = fitness.iter().fold(f64::INFINITY, |a, &b| a.min(b));
 
-        // Compute masses
         let masses = compute_masses(&fitness, best, worst);
-
-        // Compute the total force working on each agent
-        let mut total_forces: Array3<f64> =
-            Array3::<f64>::zeros((agents_total, n_samples, n_classes));
-        for (i, &mass_i) in masses.iter().enumerate() {
-            for (j, &mass_j) in masses.iter().enumerate() {
-                if i == j {
-                    continue;
-                }
-
-                let x_i: &Array2<f64> = &agents[i].distribution;
-                let x_j: &Array2<f64> = &agents[j].distribution;
-                let difference = x_j - x_i;
-                let distance = (x_i * x_j).sum().sqrt();
-                let force = gravity * mass_i * mass_j * difference / distance;
-
-                for sample in 0..n_samples {
-                    for class in 0..n_classes {
-                        unsafe {
-                            *total_forces.uget_mut((i, sample, class)) +=
-                                *force.uget((sample, class))
-                        }
-                    }
-                }
-            }
-        }
-
-        // Compute accelerations
-        let accelerations = total_forces / masses;
+        let forces = total_forces(n_samples, gravity, &params, &masses, &agents);
+        let accelerations = forces / masses;
         velocities += &accelerations;
+
         for agent in &mut agents {
             agent.distribution += &velocities
         }
