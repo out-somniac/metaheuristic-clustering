@@ -33,10 +33,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let solution = Fuzzy::random(n_samples, n_classes);
     let params = GSAParameters {
         n_classes: 3,
-        agents_total: 5,
-        max_iterations: 10,
-        initial_gravity: 10.0,
-        gravity_decay: 1.0
+        agents_total: 50,
+        max_iterations: 200,
+        initial_gravity: 20.0,
+        gravity_decay: 0.1
     };
 
     let solution = gravity::fit(&data, params)?;

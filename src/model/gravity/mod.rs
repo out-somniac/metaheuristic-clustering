@@ -69,6 +69,8 @@ pub struct GSAParameters {
     pub gravity_decay: f64,
 }
 
+const MASS_EPS: f64 = 1e-16;
+
 pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
     let n_samples = data.records.nrows();
 
@@ -94,7 +96,11 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
 
         for agent in 0..agents.len() {
             let mass = unsafe { *masses.uget(agent) };
-            forces.slice_mut(s![agent, .., ..]).mapv_inplace(|x| x / mass);
+            // if mass == 0.0 {
+            //     println!("mass = 0");
+            // }
+
+            forces.slice_mut(s![agent, .., ..]).mapv_inplace(|x| x / (mass + MASS_EPS));
         }
 
         velocities += &forces;
