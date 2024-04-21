@@ -1,5 +1,7 @@
-use linfa::dataset::{Labels, Records};
-use ndarray::{Array1, Array2, Axis, s};
+use std::collections::HashMap;
+
+use linfa::dataset::Records;
+use ndarray::{Array1, Array2, ArrayBase, Axis, OwnedRepr};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 use ndarray_stats::{errors::MinMaxError, QuantileExt};
@@ -26,56 +28,44 @@ impl Fuzzy {
 
     pub fn fitness(&self, data: &Data) -> f64 {
         let samples = data.records();
-        
         let n_cols = samples.ncols();
-        let n_classes = self.n_classes;
 
         let indicator = self
             .clone()
             .to_discrete()
             .to_vec();
 
-        // Initialize space for centroid vectors
-        let mut centroids = Array2::<f64>::zeros((n_classes, n_cols));
-        let mut counts = vec![0usize; n_classes];
-
-        // Compute record sums for each cluster
-        for (record, &cluster) in indicator.iter().enumerate() {
-            for col in 0..n_cols {
-                unsafe {
-                    *centroids.uget_mut((cluster, col)) += *samples.uget((record, col));
-                }
-            }
-
-            counts[cluster] += 1;
-        }
-
-        // Compute centroids (arithmetical means)
-        for (class, mut col) in centroids.axis_iter_mut(Axis(1)).enumerate() {
-            col.mapv_inplace(|x| x / counts[class] as f64);
-        }
-
-        let mut variances = vec![0f64; n_classes];
-
-        // Compute variance for each cluster
-        for (record, &cluster) in indicator.iter().enumerate() {
-            let mut distance = 0.0;
-
-            for col in 0..n_cols {
-                unsafe {
-                    distance += (
-                        *samples.uget((record, col)) -
-                        *centroids.uget((cluster, col))
-                    ).powf(2.0);
-                }
-            }
-
-            variances[cluster] += distance.sqrt();
-        }
-
-        variances
+        let clusters = indicator
             .iter()
-            .sum()
+            .zip(samples.axis_iter(Axis(0)))
+            .into_group_map();
+
+        let centroids: HashMap<_, _> = clusters
+            .iter()
+            .map(|(&cluster_num, records)| {
+                let n_samples = records.len() as f64;
+                let centroid = records.iter().fold(
+                    Array1::zeros(n_cols),
+                    |acc: ArrayBase<OwnedRepr<f64>, _>, record| acc + record
+                ) / n_samples;
+
+                (cluster_num, centroid)
+            })
+            .collect();
+
+        centroids
+            .iter()
+            .zip(clusters)
+            .map(|((_, centroid), (_, records))| records
+                .iter()
+                .map(|record| (record - centroid)
+                    .mapv_into(|x| x.powf(2.0))
+                    .sum()
+                    .sqrt()
+                )
+                .sum::<f64>()
+            )
+            .sum::<f64>()
     }
 
     pub fn to_prob(self) -> Probabilistic {
@@ -151,8 +141,8 @@ impl TryInto<Discrete> for Probabilistic {
 #[derive(Debug)]
 pub struct Discrete {
     pub indicators: Array1<usize>,
-    n_classes: usize,
-    n_samples: usize
+    pub n_classes: usize,
+    pub n_samples: usize
 }
 
 impl Discrete {
