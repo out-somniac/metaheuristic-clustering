@@ -56,16 +56,21 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
                 if rng.gen_range(0.0..1.0) > 0.5 {
                     if (&A * &A).sum() < 1.0 {
                         // Encircling prey
-                        let dupa123 = (&C * &best_agent.distribution - &agent.distribution).abs();
+                        let dupa123 = &C * &best_agent.distribution - &agent.distribution;
                         agent.distribution = &best_agent.distribution - &A * &dupa123;
                     } else {
-                        // Bubble-net attacking method
+                        // Exploration phase
                         let rand_agent = agents[rng.gen_range(0..params.agents_total)];
-                        let dupa123 = (&C * &rand_agent.distribution - &agent.distribution).abs();
+                        let dupa123 = &C * &rand_agent.distribution - &agent.distribution;
                         agent.distribution = &rand_agent.distribution - &A * &dupa123;
                     }
                 } else {
-                    todo!("");
+                    // Exploitation phase
+                    let dupa123 = &best_agent.distribution - &agent.distribution;
+                    agent.distribution = &dupa123
+                        * (params.spiral_constant * time as f64).exp()
+                        * (2.0 * 3.14159265358979323846264338327950288_f64 * time as f64).cos()
+                        + best_agent.distribution;
                 }
             }
         }
