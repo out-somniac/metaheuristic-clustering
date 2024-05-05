@@ -1,7 +1,5 @@
 use std::error::Error;
-use clusterization::model::solution::{Discrete, Fuzzy};
-use itertools::Itertools;
-use linfa::dataset::Records;
+use clusterization::model::{kmeans, metric, solution::{self, Discrete}};
 use linfa_datasets::iris;
 use plotly::ImageFormat;
 
@@ -21,30 +19,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let plot = scatter_matrix::plot(data, "Iris")?;
 
     // let plot = cluster_map::plot(data, 0, 1, "Iris")?;
-
-    let n_samples = data.nsamples();
-    let n_classes = data
-        .targets()
-        .iter()
-        .unique()
-        .collect::<Vec<_>>()
-        .len();
     
     // let solution = Fuzzy::random(n_samples, n_classes);
     let params = GSAParameters {
         n_classes: 3,
-        agents_total: 50,
-        max_iterations: 200,
-        initial_gravity: 20.0,
-        gravity_decay: 0.1
+        agents_total: 10,
+        max_iterations: 50,
+        initial_gravity: 10.0,
+        gravity_decay: 0.01
     };
 
-    let solution = gravity::fit(&data, params)?;
+    // let solution = gravity::fit(&data, params)?;
 
-    let fitness = solution.fitness(&data);
-    println!("{fitness}");
+    let solution = kmeans::fit(&data, 3, 200, 1e-4);
+    // println!("{:#?}", solution);
 
-    let prediction: Discrete = solution.try_into()?;
+    // let fitness = solution.fitness(&data);
+    // println!("Fitness: {fitness}");
+
+    let truth = Discrete::from(&data);
+    // let prediction: Discrete = solution.try_into()?;
+    let prediction: Discrete = solution?;
+
+    let accuracy = 100.0 * metric::accuracy(&truth, &prediction).unwrap();
+    println!("Accuracy: {accuracy} %");
 
     let plot = prediction_map::plot(
         data,

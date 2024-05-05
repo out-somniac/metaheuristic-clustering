@@ -1,7 +1,9 @@
-use std::error::Error;
+use std::{cmp::Ordering, error::Error};
 
 use itertools::iproduct;
-use ndarray::{Array, Array1, Array2, Array3, s};
+use ndarray::{s, Array, Array1, Array2, Array3, Axis};
+use ndarray_rand::rand_distr::num_traits::Float;
+use rand::random;
 
 use super::solution::Fuzzy;
 use crate::Data;
@@ -38,14 +40,17 @@ fn total_forces(
         let x_i: &Array2<f64> = &agents[i].distribution;
         let x_j: &Array2<f64> = &agents[j].distribution;
         let difference = x_j - x_i;
-        let distance = (x_i * x_j).sum().sqrt();
+        let distance = (&difference * &difference).sum();
         let force = gravity * mass_i * mass_j * difference / distance;
+
+        let random_factor = random::<f64>();
+        // let random_factor = 1.0;
 
         // FixMe: Nie Za taką Polskę walczyłem :(
         for sample in 0..n_samples {
             for class in 0..params.n_classes {
                 unsafe {
-                    *total_forces.uget_mut((i, sample, class)) += *force.uget((sample, class));
+                    *total_forces.uget_mut((i, sample, class)) += random_factor * *force.uget((sample, class));
                 }
             }
         }
@@ -81,34 +86,57 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
     let mut velocities: Array3<f64> =
         Array3::<f64>::zeros((params.agents_total, n_samples, params.n_classes));
 
+    let max_time = params.max_iterations as f64;
+
     for time in 1..=params.max_iterations {
         let fitness = agents_fitness(&agents, &data);
 
-        let gravity = params.initial_gravity * (1.0 / time as f64).powf(params.gravity_decay);
+        let gravity = params.initial_gravity * (-params.gravity_decay * time as f64 / max_time).exp(); //params.initial_gravity * (1.0 / time as f64).powf(params.gravity_decay);
 
         let best = fitness.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
         let worst = fitness.iter().fold(f64::INFINITY, |a, &b| a.min(b));
 
         let masses = compute_masses(&fitness, best, worst);
         let mut forces = total_forces(n_samples, gravity, &params, &masses, &agents);
-        
-        // let mut accelerations = forces / masses;
 
         for agent in 0..agents.len() {
             let mass = unsafe { *masses.uget(agent) };
-            // if mass == 0.0 {
-            //     println!("mass = 0");
-            // }
 
             forces.slice_mut(s![agent, .., ..]).mapv_inplace(|x| x / (mass + MASS_EPS));
         }
 
+        velocities *= random::<f64>();
         velocities += &forces;
 
         for (i, agent) in agents.iter_mut().enumerate() {
+            // agent.distribution *= random::<f64>();
             agent.distribution += &velocities.slice(s![i, .., ..]);
-            // dbg!(&agent.distribution);
+
+            agent.distribution.map_axis_mut(
+                Axis(0),
+                |mut ax| {
+                    // Min-max scaling
+                    // let maximum = ax.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+                    // let minimum = ax.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+                    // ax.mapv_inplace(|x| (x - minimum) / maximum);
+
+                    // Logistic function
+                    // ax.mapv_inplace(|x| 1.0 / (1.0 + (-x).exp()));
+                    
+                    // Arcus-tangens
+                    // ax.mapv_inplace(|x| x.atan());
+
+                    // ReLu
+                    ax.mapv_inplace(|x| match x.total_cmp(&0.0) {
+                        Ordering::Greater => x,
+                        _ => 0.0
+                    })
+                }
+            );
+            // println!("{:?}", agent.distribution);
         }
+
+        // println!("");
     }
 
     let best_agent = agents
