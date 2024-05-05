@@ -46,7 +46,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let accuracy = 100.0 * metric::accuracy(&truth, &prediction).unwrap();
     println!("Accuracy: {accuracy} %");
 
-    let plot = prediction_map::plot(data, prediction.to_vec(), 0, 1, "Iris")?;
+    // let plot = prediction_map::plot(data, prediction.to_vec(), 0, 1, "Iris")?;
+    let plot = cluster_map::plot(data, prediction, 0, 1, "Iris")?;
 
     plot.write_image(DEST, ImageFormat::PNG, 640, 420, 1.0);
 

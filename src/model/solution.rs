@@ -30,6 +30,9 @@ impl Fuzzy {
         let samples = data.records();
         let n_cols = samples.ncols();
 
+        use ndarray::s;
+        let row = samples.slice(s![0, ..]);
+
         let indicator = self
             .clone()
             .to_discrete()
