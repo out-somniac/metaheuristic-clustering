@@ -53,7 +53,7 @@ impl Fuzzy {
             })
             .collect();
 
-        centroids
+        let variance = centroids
             .iter()
             .zip(clusters)
             .map(|((_, centroid), (_, records))| records
@@ -65,7 +65,9 @@ impl Fuzzy {
                 )
                 .sum::<f64>()
             )
-            .sum::<f64>()
+            .sum::<f64>();
+
+        1.0 / variance
     }
 
     pub fn to_prob(self) -> Probabilistic {
@@ -157,6 +159,11 @@ impl Discrete {
             .len();
 
         Discrete { indicators, n_classes, n_samples }
+    }
+
+    pub fn from_prediction(pred: Array1<usize>, n_classes: usize) -> Self {
+        let n_samples = pred.shape()[0];
+        Discrete { indicators: pred, n_classes, n_samples }
     }
 
     pub fn to_vec(self) -> Vec<usize> {

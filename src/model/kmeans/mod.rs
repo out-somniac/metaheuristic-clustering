@@ -13,7 +13,7 @@ use crate::Data;
 
 use super::solution::Discrete;
 
-fn fit(
+pub fn fit(
     data: &Data,
     n_clusters: usize,
     max_iterations: usize,
@@ -24,10 +24,8 @@ fn fit(
 
     let model = KMeans::params_with(n_clusters, rng, L2Dist)
         .max_n_iterations(max_iterations as u64)
-        .tolerance(tolerance);
+        .tolerance(tolerance)
+        .fit(&dataset)?;
 
-    let model = model.fit(&dataset)?;
-
-    // Ok(Discrete::from(model.predict(&dataset)))
-    todo!()
+    Ok(Discrete::from_prediction(model.predict(&dataset), n_clusters))
 }
