@@ -49,18 +49,20 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
             let A: Array2<f64> = a * (2.0 * &r_1 - 1.0);
             let C: Array2<f64> = 2.0 * &r_2;
 
-            let fitnesses = agents_fitness(&agents, data);
-            let best_agent_index = best_agent_index(&fitnesses);
+            let best_agent_index = best_agent_index(&agents, data);
             let best_agent = agents[best_agent_index];
 
-            for agent in &agents {
+            for agent in &mut agents {
                 if rng.gen_range(0.0..1.0) > 0.5 {
                     if (&A * &A).sum() < 1.0 {
-                        let Dupa = &C * &best_agent.distribution - &agent.distribution;
-                        // agent.distribution = &best_agent.distribution - &A * &Dupa;
+                        // Encircling prey
+                        let dupa123 = (&C * &best_agent.distribution - &agent.distribution).abs();
+                        agent.distribution = &best_agent.distribution - &A * &dupa123;
                     } else {
-                        todo!("Select a random search agent (X_rand)
-                                Update the position of the current search agent by the equation (3)");
+                        // Bubble-net attacking method
+                        let rand_agent = agents[rng.gen_range(0..params.agents_total)];
+                        let dupa123 = (&C * &rand_agent.distribution - &agent.distribution).abs();
+                        agent.distribution = &rand_agent.distribution - &A * &dupa123;
                     }
                 } else {
                     todo!("");
