@@ -1,6 +1,7 @@
 
 use super::solution::Fuzzy;
 use crate::Data;
+use rand::distributions::Distribution;
 use rand::Rng;
 
 use ndarray::Array2;
@@ -41,26 +42,34 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
     let mut rng = rand::thread_rng();
 
     for time in 1..=params.max_iterations {
-        let a = 2.0 * params.max_iterations as f64 / time as f64;
-        let r_1 = Array2::random((n_samples, params.n_classes), Uniform::new(0.0, 1.0));
-        let r_2 = Array2::random((n_samples, params.n_classes), Uniform::new(0.0, 1.0));
+        let a = 2.0 - 2.0 * time as f64 / params.max_iterations as f64;
 
-        let A: Array2<f64> = a * (2.0 * &r_1 - 1.0);
-        let C: Array2<f64> = 2.0 * &r_2;
+        let A = a *  Array2::random((n_samples, params.n_classes), Uniform::new(-1.0, 1.0));
+        let C = Array2::random((n_samples, params.n_classes), Uniform::new(0.0, 2.0));
+    
+        
+        // let A: Array2<f64> = a * (2.0 * &r_1 - 1.0);
+        // let C: Array2<f64> = 2.0 * &r_2;
 
         let best_agent_index = best_agent_index(&agents, data);
         let best_agent = agents[best_agent_index].clone();
+
+        // println!("{:#?}", best_agent.distribution);
+
+        println!("{}", a);
 
         let agents_ref = &agents as *const Vec<Fuzzy>;
 
         for (i, agent) in agents.iter_mut().enumerate() {
             if rng.gen_range(0.0..1.0) > 0.5 {
-                if (&A * &A).sum() < 1.0 {
+                if a < 1.0 {
                     // Encircling prey
+                    println!("Encircling");
                     let dupa123 = &C * &best_agent.distribution - &agent.distribution;
                     agent.distribution = &best_agent.distribution - &A * &dupa123;
                 } else {
                     // Exploration phase
+                    println!("Exploration");
                     let rand_agent_index = loop {
                         let j = rng.gen_range(0..params.agents_total);
                         if j != i {
@@ -75,15 +84,21 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
                     agent.distribution = &rand_agent.distribution - &A * &dupa123;
                 }
             } else {
+                println!("Exploitation");
                 // Exploitation phase
                 let dupa123 = &best_agent.distribution - &agent.distribution;
+                let l = Uniform::new(0.0, 1.0).sample(&mut rng);
+
                 agent.distribution = &dupa123
-                    * (params.spiral_constant * time as f64).exp()
-                    * (2.0 * 3.14159265358979323846264338327950288_f64 * time as f64).cos()
+                    * (params.spiral_constant * l).exp()
+                    * (2.0 * 3.14159265358979323846264338327950288_f64 * l).cos()
                     + &best_agent.distribution;
             }
         }
+
+        println!("");
     }
 
-    todo!("I was lazy");
+    let best_agent_index = best_agent_index(&agents, data);
+    Ok(agents[best_agent_index].clone())
 }
