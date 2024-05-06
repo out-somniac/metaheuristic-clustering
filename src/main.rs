@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let whales = whales::fit(&data, whale_params)?;
 
-    println!("{:#?}", whales);
+    // println!("{:#?}", whales);
 
     // let solution = gravity::fit(&data, params)?;
 

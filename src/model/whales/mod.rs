@@ -44,19 +44,24 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
     for time in 1..=params.max_iterations {
         let a = 2.0 - 2.0 * time as f64 / params.max_iterations as f64;
 
-        let A = a *  Array2::random((n_samples, params.n_classes), Uniform::new(-1.0, 1.0));
-        let C = Array2::random((n_samples, params.n_classes), Uniform::new(0.0, 2.0));
-    
-        
-        // let A: Array2<f64> = a * (2.0 * &r_1 - 1.0);
-        // let C: Array2<f64> = 2.0 * &r_2;
+        let A = a * Array2::random(
+            (n_samples, params.n_classes),
+            Uniform::new(-1.0, 1.0)
+        );
+
+        let C = Array2::random(
+            (n_samples, params.n_classes),
+            Uniform::new(0.0, 2.0)
+        );
+
+        println!("{:#?}", A);
 
         let best_agent_index = best_agent_index(&agents, data);
         let best_agent = agents[best_agent_index].clone();
 
         // println!("{:#?}", best_agent.distribution);
 
-        println!("{}", a);
+        // println!("{}", a);
 
         let agents_ref = &agents as *const Vec<Fuzzy>;
 
@@ -65,8 +70,8 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
                 if a < 1.0 {
                     // Encircling prey
                     println!("Encircling");
-                    let dupa123 = &C * &best_agent.distribution - &agent.distribution;
-                    agent.distribution = &best_agent.distribution - &A * &dupa123;
+                    let D = &C * &best_agent.distribution - &agent.distribution;
+                    agent.distribution = &best_agent.distribution - &A * &D;
                 } else {
                     // Exploration phase
                     println!("Exploration");
@@ -80,16 +85,16 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
                     let rand_agent = unsafe { &(*agents_ref)[rand_agent_index] };
 
                     // let rand_agent = agents[rng.gen_range(0..params.agents_total)].clone();
-                    let dupa123 = &C * &rand_agent.distribution - &agent.distribution;
-                    agent.distribution = &rand_agent.distribution - &A * &dupa123;
+                    let D = &C * &rand_agent.distribution - &agent.distribution;
+                    agent.distribution = &rand_agent.distribution - &A * &D;
                 }
             } else {
                 println!("Exploitation");
                 // Exploitation phase
-                let dupa123 = &best_agent.distribution - &agent.distribution;
+                let D = &best_agent.distribution - &agent.distribution;
                 let l = Uniform::new(0.0, 1.0).sample(&mut rng);
 
-                agent.distribution = &dupa123
+                agent.distribution = &D
                     * (params.spiral_constant * l).exp()
                     * (2.0 * 3.14159265358979323846264338327950288_f64 * l).cos()
                     + &best_agent.distribution;
