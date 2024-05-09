@@ -15,5 +15,6 @@ linfa-nn = "0.7.0"
 ndarray = "0.15.6"
 ndarray-rand = "0.14.0"
 ndarray-stats = "0.5.1"
+pathfinding = "4.9.1"
 plotly = {version = "0.8.4", features = ["kaleido", "plotly_ndarray"]}
 rand = "0.8.5"
