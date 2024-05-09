@@ -1,14 +1,13 @@
 
 use super::solution::Fuzzy;
+use crate::utilities::sampling::ExtendedRng;
 use crate::Data;
-use rand::rngs::ThreadRng;
 use rand::distributions::Distribution;
 use rand::Rng;
 
 use ndarray::Array2;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
-use std::ops::Range;
 use std::{f64::consts, error::Error};
 
 #[derive(Debug, Clone, Copy)]
@@ -34,13 +33,9 @@ fn best_agent_index(agents: &Vec<Fuzzy>, data: &Data) -> usize {
     best_index
 }
 
-fn rand_other_than(value: usize, range: Range<usize>, rng: &mut ThreadRng) -> usize {
-    loop {
-        let j = rng.gen_range(range.clone());
-        if j != value {
-            break j;
-        }
-    }
+#[inline(always)]
+const fn unravel_2d_index(ind: usize, n_cols: usize) -> (usize, usize) {
+    (ind / n_cols, ind % n_cols)
 }
 
 pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
@@ -68,15 +63,11 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
             Uniform::new(0.0, 2.0)
         );
 
-        // println!("{:#?}", decay_factor);
-
         let agents_direct = &agents as *const Vec<Fuzzy>;
 
         let best_agent_index = best_agent_index(&agents, data);
-        let best_agent = unsafe { &(*agents_direct)[best_agent_index] }; // Allows data race (algorithm sometimes proceeds more dynamically)
+        let best_agent = unsafe { &(*agents_direct)[best_agent_index] }; // Allows data race
         // let best_agent = agents[best_agent_index].clone(); // Prevents data race
-
-        // println!("{:#?}", best_agent.distribution);
 
         for (i, agent) in agents.iter_mut().enumerate() {
             if rng.gen_range(0.0..1.0) > 0.5 {
@@ -86,7 +77,7 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
                     agent.distribution = &best_agent.distribution - &decay * &displacement;
                 } else {
                     // Exploration phase
-                    let rand_agent_index = rand_other_than(i, 0..n_agents, &mut rng);
+                    let rand_agent_index = rng.gen_range_excluding(0..n_agents, i);
                     let rand_agent = unsafe { &(*agents_direct)[rand_agent_index] };
                     let displacement = &randomizer * &rand_agent.distribution - &agent.distribution;
                     agent.distribution = &rand_agent.distribution - &decay * &displacement;
@@ -96,11 +87,10 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
                 let spiral_displacement = Uniform::new(0.0, 1.0).sample(&mut rng);
                 let spiral_phase = 2.0 * consts::PI * spiral_displacement;
 
-                let dim1 = rng.gen_range(0..n_dimensions);
-                let dim2 = rand_other_than(dim1, 0..n_dimensions, &mut rng);
+                let (dim1, dim2) = rng.gen_distinct_pair_range(0..n_dimensions);
 
-                let x_index = (dim1 % n_samples, dim1 % n_classes);
-                let y_index = (dim2 % n_samples, dim2 % n_classes);
+                let x_index = unravel_2d_index(dim1, n_classes);
+                let y_index = unravel_2d_index(dim2, n_classes);
 
                 let exp_factor = (spiral_constant * spiral_displacement).exp();
 
@@ -123,17 +113,8 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
                         * spiral_phase.sin()
                         + best_y;
                 }
-
-                // let displacement = &best_agent.distribution - &agent.distribution;
-
-                // agent.distribution = &displacement
-                //     * (spiral_constant * spiral_phase).exp()
-                //     * (2.0 * consts::PI * spiral_phase).cos()
-                //     + &best_agent.distribution;
             }
         }
-
-        // println!("");
     }
 
     let best_agent_index = best_agent_index(&agents, data);
