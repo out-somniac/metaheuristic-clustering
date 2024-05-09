@@ -2,7 +2,6 @@ use std::{cmp::Ordering, error::Error};
 
 use itertools::iproduct;
 use ndarray::{s, Array, Array1, Array2, Array3, Axis};
-use ndarray_rand::rand_distr::num_traits::Float;
 use rand::random;
 
 use super::solution::Fuzzy;
@@ -27,7 +26,7 @@ fn compute_masses(fitness: &Vec<f64>, best: f64, worst: f64) -> Array1<f64> {
 fn total_forces(
     n_samples: usize,
     gravity: f64,
-    params: &GSAParameters,
+    params: &Parameters,
     masses: &Array1<f64>,
     agents: &Vec<Fuzzy>,
 ) -> Array3<f64> {
@@ -66,7 +65,8 @@ fn agents_fitness(agents: &Vec<Fuzzy>, data: &Data) -> Vec<f64> {
         .collect::<Vec<_>>()
 }
 
-pub struct GSAParameters {
+#[derive(Debug, Clone, Copy)]
+pub struct Parameters {
     pub n_classes: usize,
     pub agents_total: usize,
     pub max_iterations: usize,
@@ -76,7 +76,7 @@ pub struct GSAParameters {
 
 const MASS_EPS: f64 = 1e-16;
 
-pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> {
+pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
     let n_samples = data.records.nrows();
 
     let mut agents: Vec<Fuzzy> = (0..params.agents_total)
