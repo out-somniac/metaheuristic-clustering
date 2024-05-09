@@ -7,12 +7,12 @@ use plotly::{
     Layout, Plot, Scatter
 };
 
-use crate::{Data, INDICATOR_COLORS, INDICATOR_LABELS};
+use crate::{model::solution::Discrete, Data, INDICATOR_COLORS, INDICATOR_LABELS};
 
 
 pub fn plot(
     data: Data,
-    prediction: Vec<usize>,
+    prediction: Discrete,
     x: usize,
     y: usize,
     title: &str
@@ -37,7 +37,7 @@ pub fn plot(
     let indicator = data
         .targets()
         .iter()
-        .zip(prediction)
+        .zip(prediction.to_vec())
         .map(|(e1, e2)| *e1 == e2);
 
     let mut matching_x = Vec::<f64>::new();

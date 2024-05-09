@@ -1,14 +1,16 @@
-use clusterization::model::{
-    kmeans, metric,
-    solution::{self, Discrete}, whales::{self, WOAParameters},
-};
 use linfa_datasets::iris;
 use plotly::ImageFormat;
 use std::error::Error;
 
 #[allow(unused_imports)]
 use clusterization::{
-    model::gravity::{self, GSAParameters},
+    model::{
+        solution::{self, Discrete},
+        metric,
+        kmeans,
+        gravity,
+        whales
+    },
     plot::{cluster_map, prediction_map, scatter_matrix},
     Data,
 };
@@ -17,10 +19,11 @@ const DEST: &'static str = "images/prediction_whales.png";
 
 fn main() -> Result<(), Box<dyn Error>> {
     let data: Data = iris();
+    let truth = Discrete::from(&data);
 
     // GSA
 
-    // let gravity_params = GSAParameters {
+    // let gravity_params = gravity::Parameters {
     //     n_classes: 3,
     //     agents_total: 25,
     //     max_iterations: 200,
@@ -29,21 +32,26 @@ fn main() -> Result<(), Box<dyn Error>> {
     // };
 
     // let solution = gravity::fit(&data, gravity_params)?;
-    // let prediction = solution.to_discrete();
+    // let prediction = solution
+    //     .to_discrete()
+    //     .matched_with(&truth)
+    //     .unwrap();
 
 
     // WOA
 
-    let whale_params = WOAParameters {
+    let whale_params = whales::Parameters {
         n_classes: 3,
         n_agents: 25,
         max_iterations: 2000,
-        spiral_constant: 1.0
+        spiral_constant: 5.0
     };
 
     let solution = whales::fit(&data, whale_params)?;
-    let prediction = solution.to_discrete();
-
+    let prediction = solution
+        .to_discrete()
+        .matched_with(&truth)
+        .unwrap();
 
     // K-means
 
@@ -52,13 +60,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Evaluation
 
-    let truth = Discrete::from(&data);
-
     let accuracy = 100.0 * metric::accuracy(&truth, &prediction).unwrap();
     println!("Accuracy: {accuracy} %");
 
-    // let plot = prediction_map::plot(data, prediction.to_vec(), 0, 1, "Iris")?;
-    let plot = cluster_map::plot(data, prediction, 0, 1, "Iris")?;
+    let plot = prediction_map::plot(data, prediction, 0, 1, "Iris")?;
+    // let plot = cluster_map::plot(data, prediction, 0, 1, "Iris")?;
 
     plot.write_image(DEST, ImageFormat::PNG, 640, 420, 1.0);
 
