@@ -1,11 +1,11 @@
-use std::{cmp::Ordering, error::Error};
+use std::error::Error;
 
 use itertools::iproduct;
-use ndarray::{s, Array, Array1, Array2, Array3, Axis};
+use ndarray::{s, Array, Array1, Array2, Array3};
 use rand::random;
 
 use super::solution::Fuzzy;
-use crate::Data;
+use crate::{utilities::normalization::Normalize, Data};
 
 fn compute_masses(fitness: &Vec<f64>, best: f64, worst: f64) -> Array1<f64> {
     let masses = fitness
@@ -111,29 +111,7 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
         for (i, agent) in agents.iter_mut().enumerate() {
             // agent.distribution *= random::<f64>();
             agent.distribution += &velocities.slice(s![i, .., ..]);
-
-            agent.distribution.map_axis_mut(
-                Axis(0),
-                |mut ax| {
-                    // Min-max scaling
-                    // let maximum = ax.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-                    // let minimum = ax.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-                    // ax.mapv_inplace(|x| (x - minimum) / maximum);
-
-                    // Logistic function
-                    // ax.mapv_inplace(|x| 1.0 / (1.0 + (-x).exp()));
-                    
-                    // Arcus-tangens
-                    // ax.mapv_inplace(|x| x.atan());
-
-                    // ReLu
-                    ax.mapv_inplace(|x| match x.total_cmp(&0.0) {
-                        Ordering::Greater => x,
-                        _ => 0.0
-                    })
-                }
-            );
-            // println!("{:?}", agent.distribution);
+            agent.distribution.relu_inplace();
         }
 
         // println!("");
