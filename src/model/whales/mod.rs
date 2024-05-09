@@ -1,9 +1,8 @@
 
 use super::solution::Fuzzy;
 use crate::Data;
-use rand::distributions::uniform::SampleRange;
 use rand::rngs::ThreadRng;
-use rand::{distributions::Distribution, RngCore};
+use rand::distributions::Distribution;
 use rand::Rng;
 
 use ndarray::Array2;
@@ -12,7 +11,8 @@ use ndarray_rand::RandomExt;
 use std::ops::Range;
 use std::{f64::consts, error::Error};
 
-pub struct WOAParameters {
+#[derive(Debug, Clone, Copy)]
+pub struct Parameters {
     pub n_classes: usize,
     pub n_agents: usize,
     pub max_iterations: usize,
@@ -43,10 +43,10 @@ fn rand_other_than(value: usize, range: Range<usize>, rng: &mut ThreadRng) -> us
     }
 }
 
-pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> {
+pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
     let n_samples = data.records.nrows();
     
-    let WOAParameters { n_classes, n_agents, max_iterations, spiral_constant } = params;
+    let Parameters { n_classes, n_agents, max_iterations, spiral_constant } = params;
 
     let n_dimensions = n_samples * n_classes;
 
@@ -106,8 +106,6 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
 
                 unsafe {
                     let best_x = best_agent.distribution.uget(x_index);
-                    let best_y = best_agent.distribution.uget(x_index);
-
                     let x = agent.distribution.uget_mut(x_index);
                     let x_displacement = best_x - *x;
 
@@ -116,6 +114,7 @@ pub fn fit(data: &Data, params: WOAParameters) -> Result<Fuzzy, Box<dyn Error>> 
                         * spiral_phase.cos()
                         + best_x;
 
+                    let best_y = best_agent.distribution.uget(y_index);
                     let y = agent.distribution.uget_mut(y_index);
                     let y_displacement = best_y - *y;
 
