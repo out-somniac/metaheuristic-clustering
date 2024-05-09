@@ -1,6 +1,6 @@
 
 use super::solution::Fuzzy;
-use crate::utilities::sampling::ExtendedRng;
+use crate::utility::sampling::ExtendedRng;
 use crate::Data;
 use rand::distributions::Distribution;
 use rand::Rng;

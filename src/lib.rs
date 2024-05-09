@@ -7,6 +7,8 @@ pub type Data = DatasetBase<ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>, ArrayBas
 pub mod model;
 pub mod plot;
 
+pub mod utility;
+
 pub const IRIS_LABELS: [&'static str; 3] = [
     "Setosa",
     "Versicolor",

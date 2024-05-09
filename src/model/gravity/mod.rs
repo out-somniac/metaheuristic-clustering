@@ -5,7 +5,7 @@ use ndarray::{s, Array, Array1, Array2, Array3};
 use rand::random;
 
 use super::solution::Fuzzy;
-use crate::{utilities::normalization::Normalize, Data};
+use crate::{utility::normalization::Normalize, Data};
 
 fn compute_masses(fitness: &Vec<f64>, best: f64, worst: f64) -> Array1<f64> {
     let masses = fitness
