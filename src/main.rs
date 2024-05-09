@@ -33,8 +33,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let whale_params = WOAParameters {
         n_classes: 3,
-        agents_total: 15,
-        max_iterations: 100,
+        n_agents: 25,
+        max_iterations: 2500,
         spiral_constant: 1.0
     };
 
