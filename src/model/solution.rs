@@ -6,6 +6,7 @@ use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 use ndarray_stats::{errors::MinMaxError, QuantileExt};
 use itertools::Itertools;
+use pathfinding::prelude::{kuhn_munkres, Matrix};
 
 use crate::Data;
 
@@ -29,9 +30,6 @@ impl Fuzzy {
     pub fn fitness(&self, data: &Data) -> f64 {
         let samples = data.records();
         let n_cols = samples.ncols();
-
-        use ndarray::s;
-        let row = samples.slice(s![0, ..]);
 
         let indicator = self
             .clone()
@@ -115,7 +113,7 @@ impl TryInto<Discrete> for Fuzzy {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Probabilistic {
     pub distribution: Array2<f64>,
     pub n_samples: usize,
@@ -143,7 +141,7 @@ impl TryInto<Discrete> for Probabilistic {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Discrete {
     pub indicators: Array1<usize>,
     pub n_classes: usize,
@@ -171,6 +169,30 @@ impl Discrete {
 
     pub fn to_vec(self) -> Vec<usize> {
         self.indicators.to_vec()
+    }
+
+    pub fn matched_with(self, truth: &Discrete) -> Result<Discrete, ndarray::ErrorKind> {
+        let Discrete { mut indicators, n_classes, n_samples } = self;
+        
+        if n_samples != truth.indicators.dim() {
+            return Err(ndarray::ErrorKind::IncompatibleShape);
+        }
+
+        let mut cost = Matrix::new(n_classes, n_classes, 0isize);
+
+        truth
+            .indicators
+            .iter()
+            .zip(indicators.iter())
+            .for_each(|(&t, &p)| unsafe {
+                *cost.get_unchecked_mut(t * n_classes + p) += 1
+            });
+
+        let (_, mapping) = kuhn_munkres(&cost);
+
+        indicators.mapv_inplace(|x| mapping[x]);
+
+        Ok(Discrete { indicators, n_classes, n_samples })
     }
 }
 
