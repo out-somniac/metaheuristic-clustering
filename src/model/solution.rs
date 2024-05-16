@@ -4,7 +4,7 @@ use linfa::dataset::Records;
 use ndarray::{Array1, Array2, ArrayBase, Axis, OwnedRepr};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
-use ndarray_stats::{errors::MinMaxError, QuantileExt};
+use ndarray_stats::{errors::{MinMaxError, MultiInputError}, DeviationExt, QuantileExt};
 use itertools::Itertools;
 use pathfinding::prelude::{kuhn_munkres, Matrix};
 
@@ -25,6 +25,21 @@ impl Fuzzy {
             n_samples,
             n_classes,
         }
+    }
+
+    pub fn l2_distance(a: &Fuzzy, b: &Fuzzy) -> Result<f64, MultiInputError> {
+        a.distribution.l2_dist(&b.distribution)
+    }
+
+    pub fn cosine_distance(a: &Fuzzy, b: &Fuzzy) -> Result<f64, MultiInputError> {
+        let a = &a.distribution;
+        let b = &b.distribution;
+
+        let a_norm = a.sq_l2_dist(a)?;
+        let b_norm = b.sq_l2_dist(b)?;
+        let dist = a.sq_l2_dist(b)?;
+
+        Ok(dist / (a_norm * b_norm))
     }
 
     pub fn fitness(&self, data: &Data) -> f64 {
@@ -149,7 +164,7 @@ pub struct Discrete {
 }
 
 impl Discrete {
-    pub fn from(data: &Data) -> Self {
+    pub fn new(data: &Data) -> Self {
         let indicators = data.targets().to_owned();
         let n_samples = data.nsamples();
         let n_classes = data
