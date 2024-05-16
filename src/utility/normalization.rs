@@ -14,7 +14,8 @@ impl Normalize for Array2<f64> {
             |mut ax| {
                 let maximum = ax.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
                 let minimum = ax.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-                ax.mapv_inplace(|x| (x - minimum) / maximum);
+                let range = maximum - minimum;
+                ax.mapv_inplace(|x| (x - minimum) / range);
             }
         );
 
