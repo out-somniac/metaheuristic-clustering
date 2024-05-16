@@ -16,6 +16,7 @@ pub struct Parameters {
     pub n_agents: usize,
     pub max_iterations: usize,
     pub spiral_constant: f64,
+    pub n_spiral_samples: usize
 }
 
 fn best_agent_index(agents: &Vec<Fuzzy>, data: &Data) -> usize {
@@ -41,7 +42,13 @@ const fn unravel_2d_index(ind: usize, n_cols: usize) -> (usize, usize) {
 pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
     let n_samples = data.records.nrows();
     
-    let Parameters { n_classes, n_agents, max_iterations, spiral_constant } = params;
+    let Parameters {
+        n_classes,
+        n_agents,
+        max_iterations,
+        spiral_constant,
+        n_spiral_samples
+    } = params;
 
     let n_dimensions = n_samples * n_classes;
 
@@ -83,35 +90,37 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
                     agent.distribution = &rand_agent.distribution - &decay * &displacement;
                 }
             } else {
-                // Exploitation phase
-                let spiral_displacement = Uniform::new(0.0, 1.0).sample(&mut rng);
-                let spiral_phase = 2.0 * consts::PI * spiral_displacement;
+                for _ in 0..n_spiral_samples {
+                    // Exploitation phase
+                    let spiral_displacement = Uniform::new(0.0, 1.0).sample(&mut rng);
+                    let spiral_phase = 2.0 * consts::PI * spiral_displacement;
 
-                let (dim1, dim2) = rng.gen_distinct_pair_range(0..n_dimensions);
+                    let (dim1, dim2) = rng.gen_distinct_pair_range(0..n_dimensions);
 
-                let x_index = unravel_2d_index(dim1, n_classes);
-                let y_index = unravel_2d_index(dim2, n_classes);
+                    let x_index = unravel_2d_index(dim1, n_classes);
+                    let y_index = unravel_2d_index(dim2, n_classes);
 
-                let exp_factor = (spiral_constant * spiral_displacement).exp();
+                    let exp_factor = (spiral_constant * spiral_displacement).exp();
 
-                unsafe {
-                    let best_x = best_agent.distribution.uget(x_index);
-                    let x = agent.distribution.uget_mut(x_index);
-                    let x_displacement = best_x - *x;
+                    unsafe {
+                        let best_x = best_agent.distribution.uget(x_index);
+                        let x = agent.distribution.uget_mut(x_index);
+                        let x_displacement = best_x - *x;
 
-                    *x = x_displacement 
-                        * exp_factor
-                        * spiral_phase.cos()
-                        + best_x;
+                        *x = x_displacement 
+                            * exp_factor
+                            * spiral_phase.cos()
+                            + best_x;
 
-                    let best_y = best_agent.distribution.uget(y_index);
-                    let y = agent.distribution.uget_mut(y_index);
-                    let y_displacement = best_y - *y;
+                        let best_y = best_agent.distribution.uget(y_index);
+                        let y = agent.distribution.uget_mut(y_index);
+                        let y_displacement = best_y - *y;
 
-                    *y = y_displacement 
-                        * exp_factor
-                        * spiral_phase.sin()
-                        + best_y;
+                        *y = y_displacement 
+                            * exp_factor
+                            * spiral_phase.sin()
+                            + best_y;
+                    }
                 }
             }
         }

@@ -15,58 +15,101 @@ use clusterization::{
     Data,
 };
 
-const DEST: &'static str = "images/prediction_whales.png";
+
+fn evaluate_and_save_results(data: &Data, prediction: &Discrete, truth: &Discrete, algorithm_name: &'static str) {
+    let accuracy = 100.0 * metric::accuracy(truth, prediction).unwrap();
+
+    let title = format!("Iris - {}, {:.2}% accuracy", algorithm_name, accuracy);
+
+    let dest = format!("images/accuracy_{}.png", algorithm_name);
+
+    prediction_map::plot(data.clone(), prediction.clone(), 0, 1, &title)
+        .unwrap()
+        .write_image(
+            &dest,
+            ImageFormat::PNG,
+            640,
+            420,
+            1.0
+        );
+
+    let dest = format!("images/clusters_{}.png", algorithm_name);
+
+    cluster_map::plot(data.clone(), prediction.clone(), 0, 1, &title)
+        .unwrap()
+        .write_image(
+            &dest,
+            ImageFormat::PNG,
+            640,
+            420,
+            1.0
+        );
+}
+
 
 fn main() -> Result<(), Box<dyn Error>> {
     let data: Data = iris();
-    let truth = Discrete::from(&data);
+    let truth = Discrete::new(&data);
 
     // GSA
 
-    // let gravity_params = gravity::Parameters {
-    //     n_classes: 3,
-    //     agents_total: 25,
-    //     max_iterations: 200,
-    //     initial_gravity: 10.0,
-    //     gravity_decay: 0.01,
-    // };
-
-    // let solution = gravity::fit(&data, gravity_params)?;
-    // let prediction = solution
-    //     .to_discrete()
-    //     .matched_with(&truth)
-    //     .unwrap();
-
-
-    // WOA
-
-    let whale_params = whales::Parameters {
+    let params = gravity::Parameters {
         n_classes: 3,
-        n_agents: 25,
-        max_iterations: 2000,
-        spiral_constant: 5.0
+        n_agents: 10,
+        max_iterations: 500,
+        initial_gravity: 1.0,
+        gravity_decay: 0.01,
+        distance: gravity::Distance::Cosine,
+        normalization: gravity::Normalization::MinMax
     };
 
-    let solution = whales::fit(&data, whale_params)?;
+    let solution = gravity::fit(&data, params)?;
+
     let prediction = solution
         .to_discrete()
         .matched_with(&truth)
         .unwrap();
 
+    evaluate_and_save_results(&data, &prediction, &truth, "gravity");
+
+
+    // WOA
+
+    // let params = whales::Parameters {
+    //     n_classes: 3,
+    //     n_agents: 50,
+    //     max_iterations: 2000,
+    //     spiral_constant: 1.0,
+    //     n_spiral_samples: 50
+    // };
+
+    // let solution = whales::fit(&data, params)?;
+    // let prediction = solution
+    //     .to_discrete()
+    //     .matched_with(&truth)
+    //     .unwrap();
+
+    // evaluate_and_save_results(&data, &prediction, &truth, "whales");
+
+
     // K-means
 
-    // let prediction = kmeans::fit(&data, 3, 200, 1e-4)?;
+    let prediction = kmeans::fit(&data, 3, 200, 1e-4)?
+        .matched_with(&truth)
+        .unwrap();
 
+    evaluate_and_save_results(&data, &prediction, &truth, "kmeans");
 
     // Evaluation
 
-    let accuracy = 100.0 * metric::accuracy(&truth, &prediction).unwrap();
-    println!("Accuracy: {accuracy} %");
+    // let accuracy = 100.0 * metric::accuracy(&truth, &prediction).unwrap();
+    // println!("Accuracy: {accuracy} %");
 
-    let plot = prediction_map::plot(data, prediction, 0, 1, "Iris")?;
-    // let plot = cluster_map::plot(data, prediction, 0, 1, "Iris")?;
+    // prediction_map::plot(data.clone(), prediction.clone(), 0, 1, "Iris")?
+    //     .write_image(format!("images/accuracy_{}.png", alg), ImageFormat::PNG, 640, 420, 1.0);
 
-    plot.write_image(DEST, ImageFormat::PNG, 640, 420, 1.0);
+    // cluster_map::plot(data.clone(), prediction.clone(), 0, 1, "Iris")?
+    //     .write_image(format!("images/clusters_{}.png", alg), ImageFormat::PNG, 640, 420, 1.0);
 
     Ok(())
 }
