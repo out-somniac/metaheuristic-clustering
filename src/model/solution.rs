@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use linfa::dataset::Records;
-use ndarray::{Array1, Array2, ArrayBase, Axis, OwnedRepr};
+use ndarray::{s, Array1, Array2, ArrayBase, Axis, OwnedRepr};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 use ndarray_stats::{errors::MinMaxError, QuantileExt};
@@ -40,34 +40,158 @@ impl Fuzzy {
             .zip(samples.axis_iter(Axis(0)))
             .into_group_map();
 
-        let centroids: HashMap<_, _> = clusters
-            .iter()
-            .map(|(&cluster_num, records)| {
-                let n_samples = records.len() as f64;
-                let centroid = records.iter().fold(
-                    Array1::zeros(n_cols),
-                    |acc: ArrayBase<OwnedRepr<f64>, _>, record| acc + record
-                ) / n_samples;
+        
+        // let mut fitn: f64 = 0.0;
+        // for (idx, cluster) in clusters {
+        //     for elem in cluster {
+        //         fitn -= *idx as f64;
+        //         // println!("{}", elem);
+        //         // fitn += unsafe {elem.uget(0)};
+        //         // fitn -= unsafe {elem.uget(1)};
+        //         // fitn -= unsafe {elem.uget(2)};
+        //     }
+        // };
 
-                (cluster_num, centroid)
-            })
-            .collect();
+        // println!("{}", fitn);
+        // return fitn;
 
-        let variance = centroids
-            .iter()
-            .zip(clusters)
-            .map(|((_, centroid), (_, records))| records
-                .iter()
-                .map(|record| (record - centroid)
-                    .mapv_into(|x| x.powf(2.0))
-                    .sum()
-                    .sqrt()
-                )
-                .sum::<f64>()
-            )
-            .sum::<f64>();
 
-        1.0 / variance
+        // let clusters_idx = indicator
+        //     .iter()
+        //     .zip(0..samples.len())
+        //     .into_group_map();
+
+        // https://www.researchgate.net/publication/341593540_Genetic_Algorithm_with_New_Fitness_Function_for_Clustering
+        let k = clusters.len();
+
+        // BC - Distance between clusters
+
+        let mut BC: f64 = 0.0;
+
+        for m in 0..k-1 {
+            for n in m+1..k {
+                let mut BC_nm2: f64 = 0.0;
+
+                let cluster_a = clusters.get(&m).unwrap();
+                let cluster_b = clusters.get(&n).unwrap();
+
+                let pomocy = cluster_a.iter().cartesian_product(cluster_b);
+
+                for (u, v) in pomocy {
+                    let diff = u-v;
+                    let skull_emoji = (diff.clone() * diff).sum();
+                    BC_nm2 += skull_emoji;
+                }
+
+                BC_nm2 /= (cluster_a.len() * cluster_b.len() * n) as f64;
+                BC += BC_nm2.sqrt();
+            }
+        };
+
+        // WC - Distance within a cluster
+
+        let mut WC: f64 = 0.0;
+
+        for m in 0..k-1 {
+            let mut WC_m2: f64 = 0.0;
+            let cluster = clusters.get(&m).unwrap();
+            let pomocy = cluster.iter().cartesian_product(cluster);
+
+            for (u, v) in pomocy {
+                let diff = u-v;
+                let skull_emoji = (diff.clone() * diff).sum();
+                WC_m2 += skull_emoji;
+            }
+
+            WC_m2 /= (cluster.len() * cluster.len()) as f64;
+            WC += WC_m2.sqrt();
+        };
+
+        // SW - Average of the silhouette value of each observation
+
+        // Porzuccie nadzieje ci co tutaj przychodzicie
+        // :(
+
+        let mut SW: f64 = 0.0;
+
+        let observation_to_cluster = self
+            .clone()
+            .to_discrete()
+            .to_vec();
+
+        for (obs_id, cluster_id) in observation_to_cluster.iter().enumerate() {
+            let current_obs_cluster = clusters.get(cluster_id).unwrap();
+
+            // NIE TRZEBA TEGO FILTROWAC PONIEWAZ a - a == 0 :DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD 
+            // let others_in_curr_cluster = current_obs_cluster_idx.iter().filter(|x| **x != obs_id);
+
+            let wektorus = samples.slice(s![obs_id, ..]).clone();
+
+            // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+            let mut ai: f64 = 0.0;
+            for other in current_obs_cluster {
+                let diff = &wektorus - other;
+                let dist = (diff.clone() * diff).sum();
+                ai += dist;
+            }
+            ai /= current_obs_cluster.len() as f64;
+
+            // BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+            let mut bi: f64 = 99999999999999999999.0;
+
+            for (idx, cluster) in &clusters {
+                if *idx == cluster_id {
+                    continue;
+                }
+
+                let mut curr_bi = 0.0;
+                for other in cluster {
+                    let diff = &wektorus - other;
+                    let dist = (diff.clone() * diff).sum();
+                    curr_bi += dist;
+                }
+                curr_bi /= current_obs_cluster.len() as f64;
+
+                bi = bi.min(curr_bi);
+            }
+
+            SW += (bi-ai)/bi.min(ai);
+        };
+
+        // FF
+
+        println!("FITNESS: {}", (BC/WC)+SW);
+
+        (BC/WC)+SW
+
+        // let centroids: HashMap<_, _> = clusters
+        //     .iter()
+        //     .map(|(&cluster_num, records)| {
+        //         let n_samples = records.len() as f64;
+        //         let centroid = records.iter().fold(
+        //             Array1::zeros(n_cols),
+        //             |acc: ArrayBase<OwnedRepr<f64>, _>, record| acc + record
+        //         ) / n_samples;
+
+        //         (cluster_num, centroid)
+        //     })
+        //     .collect();
+
+        // let variance = centroids
+        //     .iter()
+        //     .zip(clusters)
+        //     .map(|((_, centroid), (_, records))| records
+        //         .iter()
+        //         .map(|record| (record - centroid)
+        //             .mapv_into(|x| x.powf(2.0))
+        //             .sum()
+        //             .sqrt()
+        //         )
+        //         .sum::<f64>()
+        //     )
+        //     .sum::<f64>();
+
+        // 1.0 / variance
     }
 
     pub fn to_prob(self) -> Probabilistic {

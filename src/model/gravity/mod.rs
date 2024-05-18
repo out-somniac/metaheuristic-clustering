@@ -14,6 +14,8 @@ fn compute_masses(fitness: &Vec<f64>, best: f64, worst: f64) -> Array1<f64> {
         .map(|f| (f - worst) / (best - worst))
         .collect::<Vec<_>>();
 
+    // Array::from_vec(masses)
+
     let masses_sum: f64 = masses.iter().sum();
 
     let normalized_masses = masses
@@ -41,10 +43,12 @@ fn total_forces(
         let x_j: &Array2<f64> = &agents[j].distribution;
         let difference = x_j - x_i;
         let distance = (&difference * &difference).sum();
-        let force = gravity * mass_i * mass_j * difference / distance;
 
-        let random_factor = random::<f64>();
-        // let random_factor = 1.0;
+        let force = gravity * mass_i * mass_j * (difference/distance.sqrt()) / distance;
+        // println!("FORCE: {} {} {} {}", gravity, mass_i, mass_j, distance);
+
+        // let random_factor = random::<f64>();
+        let random_factor = 1.0;
 
         // FixMe: Nie Za taką Polskę walczyłem :(
         for sample in 0..n_samples {
@@ -90,6 +94,7 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
 
     for time in 1..=params.max_iterations {
         let fitness = agents_fitness(&agents, &data);
+        println!("");
 
         let gravity = params.initial_gravity * (-params.gravity_decay * time as f64 / max_time).exp(); //params.initial_gravity * (1.0 / time as f64).powf(params.gravity_decay);
 
@@ -105,34 +110,34 @@ pub fn fit(data: &Data, params: GSAParameters) -> Result<Fuzzy, Box<dyn Error>> 
             forces.slice_mut(s![agent, .., ..]).mapv_inplace(|x| x / (mass + MASS_EPS));
         }
 
-        velocities *= random::<f64>();
+        // velocities *= random::<f64>();
         velocities += &forces;
 
         for (i, agent) in agents.iter_mut().enumerate() {
             // agent.distribution *= random::<f64>();
             agent.distribution += &velocities.slice(s![i, .., ..]);
 
-            agent.distribution.map_axis_mut(
-                Axis(0),
-                |mut ax| {
-                    // Min-max scaling
-                    // let maximum = ax.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-                    // let minimum = ax.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-                    // ax.mapv_inplace(|x| (x - minimum) / maximum);
+            // agent.distribution.map_axis_mut(
+            //     Axis(0),
+            //     |mut ax| {
+            //         // Min-max scaling
+            //         // let maximum = ax.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+            //         // let minimum = ax.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+            //         // ax.mapv_inplace(|x| (x - minimum) / maximum);
 
-                    // Logistic function
-                    // ax.mapv_inplace(|x| 1.0 / (1.0 + (-x).exp()));
+            //         // Logistic function
+            //         // ax.mapv_inplace(|x| 1.0 / (1.0 + (-x).exp()));
                     
-                    // Arcus-tangens
-                    // ax.mapv_inplace(|x| x.atan());
+            //         // Arcus-tangens
+            //         // ax.mapv_inplace(|x| x.atan());
 
-                    // ReLu
-                    ax.mapv_inplace(|x| match x.total_cmp(&0.0) {
-                        Ordering::Greater => x,
-                        _ => 0.0
-                    })
-                }
-            );
+            //         // ReLu
+            //         // ax.mapv_inplace(|x| match x.total_cmp(&0.0) {
+            //         //     Ordering::Greater => x,
+            //         //     _ => 0.0
+            //         // })
+            //     }
+            // );
             // println!("{:?}", agent.distribution);
         }
 

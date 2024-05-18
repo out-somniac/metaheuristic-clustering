@@ -23,30 +23,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let solution = Fuzzy::random(n_samples, n_classes);
     let params = GSAParameters {
         n_classes: 3,
-        agents_total: 10,
-        max_iterations: 50,
+        agents_total: 5,
+        max_iterations: 5,
         initial_gravity: 10.0,
-        gravity_decay: 0.01
+        gravity_decay: 1.0,
     };
 
-    // let solution = gravity::fit(&data, params)?;
+    let solution = gravity::fit(&data, params)?;
 
-    let solution = kmeans::fit(&data, 3, 200, 1e-4);
-    // println!("{:#?}", solution);
+    // let solution = kmeans::fit(&data, 3, 200, 1e-4);
+    println!("{:#?}", solution);
 
-    // let fitness = solution.fitness(&data);
-    // println!("Fitness: {fitness}");
+    let fitness = solution.fitness(&data);
+    println!("Fitness: {fitness}");
 
     let truth = Discrete::from(&data);
-    // let prediction: Discrete = solution.try_into()?;
-    let prediction: Discrete = solution?;
+    let prediction: Discrete = solution.try_into()?;
+    // let prediction: Discrete = solution?;
 
     let accuracy = 100.0 * metric::accuracy(&truth, &prediction).unwrap();
     println!("Accuracy: {accuracy} %");
 
-    let plot = prediction_map::plot(
+    let plot = cluster_map::plot(
         data,
-        prediction.to_vec(),
+        prediction,
         0,
         1,
         "Iris"

@@ -9,10 +9,10 @@ use plotly::{
     Layout, Plot, Scatter
 };
 
-use crate::Data;
+use crate::{model::solution::Discrete, Data};
 
 
-pub fn plot(data: Data, x: usize, y: usize, title: &str) -> Result<Plot, Box<dyn Error>> {
+pub fn plot(data: Data, prediction: Discrete, x: usize, y: usize, title: &str) -> Result<Plot, Box<dyn Error>> {
     let names = data.feature_names();
 
     let x_name = &names[x];
@@ -20,7 +20,8 @@ pub fn plot(data: Data, x: usize, y: usize, title: &str) -> Result<Plot, Box<dyn
 
     let records = data.records();
 
-    let target = data.targets();
+    // let target = data.targets();
+    let target = prediction.to_vec();
 
     let groups = target
         .iter()
