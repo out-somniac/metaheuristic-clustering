@@ -5,6 +5,11 @@ This library contains implementation of algorithms adapted from the following me
 
  In addition this library contains tools for visualisation and running tests and comparisons on the `iris` dataset. 
 
+## Structure
+The `model` module contains all the implementations of algorithms and metrics as well as the solution representation structs.
+The `plot` module contains all the utility functions required for visualising crossections of the dataset and the results of our implementations.
+The `utility` module contains normalization functions and other generic utility functions. 
+
 ## Build instructions
 Simply run `cargo build --release`. 🦀😎
 
