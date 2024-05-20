@@ -9,8 +9,8 @@ This library contains implementation of algorithms adapted from the following me
 Simply run `cargo build --release`. 🦀😎
 
 ## Authors
-- Jan Smółka
-- Krzysztof Pęczek
-- Igor Urbanik
-- Szymon Bednorz
-- Hieronim Koc
+- [Jan Smółka](https://github.com/integraledelebesgue)
+- [Krzysztof Pęczek](https://github.com/out-somniac)
+- [Igor Urbanik](https://github.com/Radinyn)
+- [Szymon Bednorz](https://github.com/dsonyy)
+- [Hieronim Koc](https://github.com/Panyloi)
