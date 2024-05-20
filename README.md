@@ -1,13 +1,14 @@
-# Adaptacja metaheurystyk dla problemu klasteryzacji
+## Description
+This library contains implementation of algorithms adapted from the following metaheuristics:
+ - Gravitational Search Algorithm (Rashedi et al., [2009](https://doi.org/10.1016/j.ins.2009.03.004))
+ - Whale Optimization Algorithm (Mirjalili et al., [2016](https://doi.org/10.1016/j.advengsoft.2016.01.008))
 
-> AGH, Badania Operacyjne 2023/2024
+ In addition this library contains tools for visualisation and running tests and comparisons on the `iris` dataset. 
 
-## Opis
+## Build instructions
+Simply run `cargo build --release`. 🦀😎
 
-Celem projektu jest stworzenie od podstaw adaptacji wybranych dwóch metaheurystyk dla problemu optymalizacyjnego. Wybraliśmy algorytm grawitacyjny (Gravitational Search Algorithm)
-oraz algorytm wielorybów (Whale Optimization Algorithm) i zastosowaliśmy dla problemu klasteryzacji.
-
-## Autorzy
+## Authors
 - Jan Smółka
 - Krzysztof Pęczek
 - Igor Urbanik
