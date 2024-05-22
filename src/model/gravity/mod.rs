@@ -47,33 +47,33 @@ impl Parameters {
             max_iterations: 500,
             initial_gravity: 1.0,
             gravity_decay: 0.01,
-            distance: gravity::Distance::Cosine,
-            normalization: gravity::Normalization::MinMax
+            distance: Distance::Cosine,
+            normalization: Normalization::MinMax
         }
     }
 
-    fn with_agents(&mut self, n_agents: usize) -> Parameters {
+    fn with_agents(mut self, n_agents: usize) -> Parameters {
         self.n_agents = n_agents;
         self
     }
 
-    fn with_iterations(&mut self, max_iterations: usize) -> Parameters {
+    fn with_iterations(mut self, max_iterations: usize) -> Parameters {
         self.max_iterations = max_iterations;
         self
     }
 
-    fn with_gravity(&mut self, initial_gravity: f64, gravity_decay) -> Parameters {
+    fn with_gravity(mut self, initial_gravity: f64, gravity_decay: f64) -> Parameters {
         self.initial_gravity = initial_gravity;
         self.gravity_decay = gravity_decay;
         self
     }
 
-    fn with_metric(&mut self, distance: Distance) -> Parameters {
+    fn with_metric(mut self, distance: Distance) -> Parameters {
         self.distance = distance;
         self
     }
 
-    fn with_normalization(&mut self, normalization: Normalization) -> Parameters {
+    fn with_normalization(mut self, normalization: Normalization) -> Parameters {
         self.normalization = normalization;
         self
     }
