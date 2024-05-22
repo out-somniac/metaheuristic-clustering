@@ -18,6 +18,8 @@ pub enum Distance {
     LInf
 }
 
+
+// TODO: Consider passing default closures as a hyperparameter
 #[derive(Debug, Clone, Copy)]
 pub enum Normalization {
     Logistic,
@@ -36,6 +38,48 @@ pub struct Parameters {
     pub normalization: Normalization
 }
 
+// TODO: Considet moving into a `Builder` trait
+impl Parameters {
+    fn new(n_classes: usize) -> Parameters {
+        Parameters {
+            n_classes: n_classes,
+            n_agents: 10,
+            max_iterations: 500,
+            initial_gravity: 1.0,
+            gravity_decay: 0.01,
+            distance: gravity::Distance::Cosine,
+            normalization: gravity::Normalization::MinMax
+        }
+    }
+
+    fn with_agents(&mut self, n_agents: usize) -> Parameters {
+        self.n_agents = n_agents;
+        self
+    }
+
+    fn with_iterations(&mut self, max_iterations: usize) -> Parameters {
+        self.max_iterations = max_iterations;
+        self
+    }
+
+    fn with_gravity(&mut self, initial_gravity: f64, gravity_decay) -> Parameters {
+        self.initial_gravity = initial_gravity;
+        self.gravity_decay = gravity_decay;
+        self
+    }
+
+    fn with_metric(&mut self, distance: Distance) -> Parameters {
+        self.distance = distance;
+        self
+    }
+
+    fn with_normalization(&mut self, normalization: Normalization) -> Parameters {
+        self.normalization = normalization;
+        self
+    }
+}
+
+// TODO: Move into the `Parameters` struct
 const TOLERANCE: f64 = 1e-16;
 
 fn fitness(agents: &Vec<Fuzzy>, data: &Data) -> Vec<f64> {
@@ -97,6 +141,7 @@ fn total_forces(
 
         let difference = x_j - x_i;
 
+        // TODO: Consider passing a default closure
         let distance = match distance {
             Distance::Cosine => cosine_distance(x_i, x_j),
             Distance::L2 => x_i.l2_dist(x_j).unwrap(),
