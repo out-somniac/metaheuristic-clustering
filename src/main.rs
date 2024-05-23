@@ -53,17 +53,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // GSA
 
-    let params = gravity::Parameters {
-        n_classes: 3,
-        n_agents: 10,
-        max_iterations: 500,
-        initial_gravity: 1.0,
-        gravity_decay: 0.01,
-        distance: gravity::Distance::Cosine,
-        normalization: gravity::Normalization::MinMax
-    };
+    let solution = gravity::Parameters::new(3)
+        .agents(10)
+        .gravity(1.0, 1e-2)
+        .metric(gravity::Distance::Cosine)
+        .normalization(gravity::Normalization::MinMax)
+        .fit(&data)?;
 
-    let solution = gravity::fit(&data, params)?;
+    // let solution = gravity::fit(&data, params)?;
 
     let prediction = solution
         .to_discrete()

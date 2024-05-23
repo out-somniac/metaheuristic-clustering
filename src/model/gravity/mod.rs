@@ -1,4 +1,4 @@
-use std::error::Error;
+use derive_error::Error as StdError;
 
 #[allow(unused_imports)]
 use itertools::{iproduct, Itertools};
@@ -18,6 +18,8 @@ pub enum Distance {
     LInf
 }
 
+
+// TODO: Consider passing default closures as a hyperparameter
 #[derive(Debug, Clone, Copy)]
 pub enum Normalization {
     Logistic,
@@ -36,6 +38,60 @@ pub struct Parameters {
     pub normalization: Normalization
 }
 
+#[derive(Debug, Clone, StdError)]
+pub enum Error {  // TODO: Review these variants
+    UndefinedOrder,
+    IterationProcessDivergent
+}
+
+pub type Result<T> = core::result::Result<T, Error>;
+
+// TODO: Considet moving into a `Builder` trait
+impl Parameters {
+    pub fn new(n_classes: usize) -> Parameters {
+        Parameters {
+            n_classes,
+            n_agents: 10,
+            max_iterations: 500,
+            initial_gravity: 1.0,
+            gravity_decay: 0.01,
+            distance: Distance::Cosine,
+            normalization: Normalization::MinMax
+        }
+    }
+
+    pub fn agents(mut self, n: usize) -> Parameters {
+        self.n_agents = n;
+        self
+    }
+
+    pub fn iterations(mut self, n: usize) -> Parameters {
+        self.max_iterations = n;
+        self
+    }
+
+    pub fn gravity(mut self, initial_value: f64, decay: f64) -> Parameters {
+        self.initial_gravity = initial_value;
+        self.gravity_decay = decay;
+        self
+    }
+
+    pub fn metric(mut self, method: Distance) -> Parameters {
+        self.distance = method;
+        self
+    }
+
+    pub fn normalization(mut self, method: Normalization) -> Parameters {
+        self.normalization = method;
+        self
+    }
+
+    pub fn fit(self, data: &Data) -> Result<Fuzzy> {
+        fit(data, self)
+    }
+}
+
+// TODO: Move into the `Parameters` struct
 const TOLERANCE: f64 = 1e-16;
 
 fn fitness(agents: &Vec<Fuzzy>, data: &Data) -> Vec<f64> {
@@ -97,6 +153,7 @@ fn total_forces(
 
         let difference = x_j - x_i;
 
+        // TODO: Consider passing a default closure
         let distance = match distance {
             Distance::Cosine => cosine_distance(x_i, x_j),
             Distance::L2 => x_i.l2_dist(x_j).unwrap(),
@@ -120,7 +177,7 @@ fn gravity(initial: f64, decay: f64, time: f64, max_time: f64) -> f64 {
     initial * (-decay * time / max_time).exp()
 }
 
-pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
+pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy> {
     let n_samples = data.records.nrows();
 
     let Parameters {
@@ -191,5 +248,5 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
     let fitness = fitness(&agents, &data);
     let best = fitness.argmax().unwrap();
 
-    Ok(agents[best].clone())
+    Result::Ok(agents[best].clone())
 }
