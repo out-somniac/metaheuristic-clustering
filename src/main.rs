@@ -64,6 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let solution = gravity::fit(&data, params)?;
+    let solution = gravity::fit(&data, params)?;
 
     let prediction = solution
         .to_discrete()
