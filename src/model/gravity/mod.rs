@@ -1,4 +1,4 @@
-use std::error::Error;
+use derive_error::Error as StdError;
 
 #[allow(unused_imports)]
 use itertools::{iproduct, Itertools};
@@ -38,11 +38,19 @@ pub struct Parameters {
     pub normalization: Normalization
 }
 
+#[derive(Debug, Clone, StdError)]
+pub enum Error {  // TODO: Review these variants
+    UndefinedOrder,
+    IterationProcessDivergent
+}
+
+pub type Result<T> = core::result::Result<T, Error>;
+
 // TODO: Considet moving into a `Builder` trait
 impl Parameters {
-    fn new(n_classes: usize) -> Parameters {
+    pub fn new(n_classes: usize) -> Parameters {
         Parameters {
-            n_classes: n_classes,
+            n_classes,
             n_agents: 10,
             max_iterations: 500,
             initial_gravity: 1.0,
@@ -52,30 +60,34 @@ impl Parameters {
         }
     }
 
-    fn with_agents(mut self, n_agents: usize) -> Parameters {
-        self.n_agents = n_agents;
+    pub fn agents(mut self, n: usize) -> Parameters {
+        self.n_agents = n;
         self
     }
 
-    fn with_iterations(mut self, max_iterations: usize) -> Parameters {
-        self.max_iterations = max_iterations;
+    pub fn iterations(mut self, n: usize) -> Parameters {
+        self.max_iterations = n;
         self
     }
 
-    fn with_gravity(mut self, initial_gravity: f64, gravity_decay: f64) -> Parameters {
-        self.initial_gravity = initial_gravity;
-        self.gravity_decay = gravity_decay;
+    pub fn gravity(mut self, initial_value: f64, decay: f64) -> Parameters {
+        self.initial_gravity = initial_value;
+        self.gravity_decay = decay;
         self
     }
 
-    fn with_metric(mut self, distance: Distance) -> Parameters {
-        self.distance = distance;
+    pub fn metric(mut self, method: Distance) -> Parameters {
+        self.distance = method;
         self
     }
 
-    fn with_normalization(mut self, normalization: Normalization) -> Parameters {
-        self.normalization = normalization;
+    pub fn normalization(mut self, method: Normalization) -> Parameters {
+        self.normalization = method;
         self
+    }
+
+    pub fn fit(self, data: &Data) -> Result<Fuzzy> {
+        fit(data, self)
     }
 }
 
@@ -165,7 +177,7 @@ fn gravity(initial: f64, decay: f64, time: f64, max_time: f64) -> f64 {
     initial * (-decay * time / max_time).exp()
 }
 
-pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
+pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy> {
     let n_samples = data.records.nrows();
 
     let Parameters {
@@ -236,5 +248,5 @@ pub fn fit(data: &Data, params: Parameters) -> Result<Fuzzy, Box<dyn Error>> {
     let fitness = fitness(&agents, &data);
     let best = fitness.argmax().unwrap();
 
-    Ok(agents[best].clone())
+    Result::Ok(agents[best].clone())
 }
